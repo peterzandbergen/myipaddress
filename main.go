@@ -33,12 +33,18 @@ func handleRquestInfo(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Determine the port.
-	var la = ":8080"
+	var la string
+	var host string
+	var err error
+	if host, err = os.Hostname(); err != nil {
+		os.Exit(1)
+	}
+	la = ":8080"
 	if p := os.Getenv("PORT"); len(p) > 0 {
 		la = ":" + p
 	}
 
 	http.HandleFunc("/", handleRquestInfo)
-	fmt.Printf("Listening on http://%s ...", la)
+	fmt.Printf("Listening on http://%s%s ...", host, la)
 	http.ListenAndServe(la, http.DefaultServeMux)
 }
