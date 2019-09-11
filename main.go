@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"text/template"
 )
 
@@ -19,14 +20,31 @@ func writeClientTemplate(w io.Writer, ci *clientInfo, tpl *template.Template) {
 	tpl.Execute(w, ci)
 }
 
+func sortHeader(header map[string][]string) []string {
+	var res = make([]string, 0, len(header))
+	for k := range header {
+		res = append(res, k)
+	}
+	sort.Strings(res)
+	return res
+}
+
 func writeClientText(w io.Writer, ci *clientInfo) {
 	fmt.Fprintf(w, "remote address: %s\n", ci.RemoteAddr)
 	fmt.Fprintf(w, "UserAgent: %s\n", ci.UserAgent)
-	for k, v := range ci.Header {
-		fmt.Fprintf(w, "%s:\n", k)
-		for _, vv := range v {
-			fmt.Fprintf(w, "    %s\n", vv)
+	fmt.Fprint(w, "\nHeaders:\n")
+	keys := sortHeader(ci.Header)
+	for _, k := range keys {
+		fmt.Fprintf(w, "    %s: ", k)
+		var first = true
+		for _, vv := range ci.Header[k] {
+			fmt.Fprintf(w, "%s", vv)
+			if !first {
+				fmt.Fprint(w, ", ")
+			}
+			first = false
 		}
+		fmt.Fprint(w, "\n")
 	}
 }
 
@@ -40,6 +58,7 @@ func getClientInfo(r *http.Request) *clientInfo {
 
 func handleRquestInfo(w http.ResponseWriter, r *http.Request) {
 	ci := getClientInfo(r)
+	w.Header().Add("Content-Type", "text/plain")
 	writeClientText(w, ci)
 }
 
