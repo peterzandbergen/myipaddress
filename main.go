@@ -11,6 +11,7 @@ import (
 )
 
 type clientInfo struct {
+	RequestURI string
 	RemoteAddr string
 	UserAgent  string
 	Header     map[string][]string
@@ -30,6 +31,7 @@ func sortHeader(header map[string][]string) []string {
 }
 
 func writeClientText(w io.Writer, ci *clientInfo) {
+	fmt.Fprintf(w, "request uri: %s\n", ci.RequestURI)
 	fmt.Fprintf(w, "remote address: %s\n", ci.RemoteAddr)
 	fmt.Fprintf(w, "UserAgent: %s\n", ci.UserAgent)
 	fmt.Fprint(w, "\nHeaders:\n")
@@ -50,16 +52,23 @@ func writeClientText(w io.Writer, ci *clientInfo) {
 
 func getClientInfo(r *http.Request) *clientInfo {
 	return &clientInfo{
+		RequestURI: r.RequestURI,
 		RemoteAddr: r.RemoteAddr,
 		UserAgent:  r.UserAgent(),
 		Header:     r.Header,
 	}
 }
 
-func handleRquestInfo(w http.ResponseWriter, r *http.Request) {
+func handleRequestInfo(w http.ResponseWriter, r *http.Request) {
 	ci := getClientInfo(r)
 	w.Header().Add("Content-Type", "text/plain")
 	writeClientText(w, ci)
+}
+
+func logRequestInfo(w http.ResponseWriter, r *http.Request) {
+	ci := getClientInfo(r)
+	writeClientText(os.Stdout, ci)
+	os.Stdout.Write([]byte("\n============================\n"))
 }
 
 func main() {
@@ -75,7 +84,8 @@ func main() {
 		la = ":" + p
 	}
 
-	http.HandleFunc("/", handleRquestInfo)
-	fmt.Printf("Listening on http://%s%s ...", host, la)
+	http.HandleFunc("/", handleRequestInfo)
+	http.HandleFunc("/nifi/", logRequestInfo)
+	fmt.Printf("Listening on http://%s%s ...\n", host, la)
 	log.Fatal(http.ListenAndServe(la, http.DefaultServeMux).Error())
 }
