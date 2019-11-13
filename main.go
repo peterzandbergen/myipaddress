@@ -11,6 +11,7 @@ import (
 )
 
 type clientInfo struct {
+	Port       string
 	RequestURI string
 	RemoteAddr string
 	UserAgent  string
@@ -31,7 +32,10 @@ func sortHeader(header map[string][]string) []string {
 }
 
 func writeClientText(w io.Writer, ci *clientInfo) {
+	fmt.Fprintf(w, "instance: %s\n", instanceName)
 	fmt.Fprintf(w, "request uri: %s\n", ci.RequestURI)
+	fmt.Fprintf(w, "listen port: %s\n", ci.Port)
+	fmt.Fprintf(w, "server hostname: %s\n", hostname)
 	fmt.Fprintf(w, "remote address: %s\n", ci.RemoteAddr)
 	fmt.Fprintf(w, "UserAgent: %s\n", ci.UserAgent)
 	fmt.Fprint(w, "\nHeaders:\n")
@@ -51,11 +55,13 @@ func writeClientText(w io.Writer, ci *clientInfo) {
 }
 
 func getClientInfo(r *http.Request) *clientInfo {
+
 	return &clientInfo{
 		RequestURI: r.RequestURI,
 		RemoteAddr: r.RemoteAddr,
 		UserAgent:  r.UserAgent(),
 		Header:     r.Header,
+		Port:       port,
 	}
 }
 
@@ -71,21 +77,26 @@ func logRequestInfo(w http.ResponseWriter, r *http.Request) {
 	os.Stdout.Write([]byte("\n============================\n"))
 }
 
+var instanceName string = "instance"
+var port string = "8080"
+var hostname string
+
 func main() {
 	// Determine the port.
-	var la string
-	var host string
 	var err error
-	if host, err = os.Hostname(); err != nil {
+	if hostname, err = os.Hostname(); err != nil {
 		os.Exit(1)
 	}
-	la = ":8080"
 	if p := os.Getenv("PORT"); len(p) > 0 {
-		la = ":" + p
+		port = p
+	}
+	la := ":" + port
+	if i := os.Getenv("NAME"); len(i) > 0 {
+		instanceName = i
 	}
 
 	http.HandleFunc("/", handleRequestInfo)
 	http.HandleFunc("/nifi/", logRequestInfo)
-	fmt.Printf("Listening on http://%s%s ...\n", host, la)
+	fmt.Printf("Listening on http://%s%s ...\n", hostname, la)
 	log.Fatal(http.ListenAndServe(la, http.DefaultServeMux).Error())
 }
