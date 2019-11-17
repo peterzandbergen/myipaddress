@@ -1,3 +1,7 @@
 ---
 applications:
 - name: myipaddress
+  routes:
+  - route: myipaddress.cfapps.io
+docker:
+  image: peterzandbergen/myipaddress:scratch
